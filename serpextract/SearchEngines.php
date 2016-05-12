@@ -1080,7 +1080,7 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
 
         // Yandex
         'yandex.ru'                      => array('Yandex', 'text', 'yandsearch?text={k}'),
-        'yandex.com'                     => array('Yandex', 'text', 'yandsearch?text={k}'),
+        'yandex.com'                     => array('Yandex'),
         'yandex.{}'                      => array('Yandex'),
 
         // Yandex Images
@@ -1138,6 +1138,9 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
         'www.zxuso.com'                  => array('Zxuso', 'wd', 'ri/?wd={k}'),
     );
 }
+
+
+echo json_encode($GLOBALS['Piwik_SearchEngines']);
 
 
 
