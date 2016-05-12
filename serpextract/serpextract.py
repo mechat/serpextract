@@ -9,6 +9,9 @@ from urlparse import urlparse, parse_qs, ParseResult
 
 from iso3166 import countries
 import pylru
+from six import iteritems, itervalues, PY2, PY3, string_types, text_type
+from six.moves.urllib.parse import urlparse, parse_qs, ParseResult
+from six.moves.urllib.request import urlopen
 import chardet
 # import pkg_resources
 # with fallback for environments that lack it
@@ -173,13 +176,12 @@ def _get_search_engines():
         for i, rule in enumerate(rule_group):
             domain = rule[0]
             rule = rule[1][1:]
-            if i == 0 and len(rule)>0:
+            if i == 0 and len(rule) > 0:
                 defaults['extractor'] = rule[0]
                 if len(rule) >= 2:
                     defaults['link_macro'] = rule[1]
                 if len(rule) >= 3:
                     defaults['charsets'] = rule[2]
-
                 _engines[domain] = SearchEngineParser(engine_name,
                                                       defaults['extractor'],
                                                       defaults['link_macro'],
@@ -244,7 +246,7 @@ def _get_lossy_domain(domain):
     output = u'%s%s%s' % ('{}.' if res['ccsub'] else '',
                           res['domain'],
                           '.{}' if res['tldcc'] else res['tld'] or '')
-    _domain_cache[domain] = output # Add to LRU cache
+    _domain_cache[domain] = output  # Add to LRU cache
     return output
 
 
@@ -297,7 +299,7 @@ class SearchEngineParser(object):
         """
         self.engine_name = engine_name
         keyword_extractor = keyword_extractor or ''
-        if isinstance(keyword_extractor, basestring):
+        if isinstance(keyword_extractor, string_types):
             keyword_extractor = [keyword_extractor]
         self.keyword_extractor = keyword_extractor[:]
         for i, extractor in enumerate(self.keyword_extractor):
@@ -416,19 +418,25 @@ class SearchEngineParser(object):
                     # most recent
                     keyword = query[extractor][-1]
 
-                # baidu
-                # 2.关键词需要decode
-                # 3.有cki参数加密的情况
-                # 4.默认情况
+                # baidu is strange
+                # 1.关键词需要 decode
+                # 2.有cki参数加密的情况
+                # 3.默认情况
                 if engine_name == 'Baidu':
                     qs = parse_qs(url_parts.query)
                     if 'wd' in qs:
                         try:
-                            qs = parse_qs(url_parts.query.encode('utf-8'))
+                            if PY2:
+                                qs = parse_qs(url_parts.query.encode('utf-8'))
+                            elif PY3:
+                                qs = parse_qs(url_parts.query)
+
                             keyword = qs['wd'][0]
+                            if '�' in keyword:
+                                qs = parse_qs(url_parts.query, encoding='GB18030')
+                                keyword = qs['wd'][0]
 
                             encoding = chardet.detect(keyword)['encoding']
-                            
                             # 使用最新GBK编码
                             if encoding == 'GB2312' or not encoding:
                                 encoding = 'GB18030'
@@ -438,11 +446,12 @@ class SearchEngineParser(object):
 
                     elif 'cki' in qs:
                         try:
-                            q = urllib.urlopen(url_parts.geturl()).read()
-                            keyword = re.findall(r'<title.*?>(.*?)</title>', q)[0].replace('- \xe7\x99\xbe\xe5\xba\xa6', '').strip().decode('utf-8')
+                            q = urlopen(url_parts.geturl()).read().decode('utf-8')
+                            keyword = re.findall(r'<title.*?>(.*?)</title>', q)[0]
+                            keyword, _ = keyword.rsplit('-', 1)
+                            keyword = keyword.strip()
                         except:
                             pass
-
 
                 # Now we have to check for a tricky case where it is a SERP
                 # but just with no keyword as can be the case with Google,
@@ -457,8 +466,6 @@ class SearchEngineParser(object):
                 elif keyword is None and engine_name == 'Yahoo!' and \
                      url_parts.netloc.lower() == 'r.search.yahoo.com':
                     keyword = ''
-
-
         return ExtractResult(engine_name, keyword or '', self)
 
     def __repr__(self):
