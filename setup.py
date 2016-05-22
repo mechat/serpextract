@@ -12,7 +12,8 @@ install_requires = [
     'iso3166 >= 0.4',
     'pylru >= 1.0.3',
     'tldextract >= 1.2',
-    'chardet==2.3.0'
+    'chardet==2.3.0',
+    'mock==1.0.1'
 ]
 
 if sys.version_info <= (2,7):
