@@ -472,12 +472,19 @@ class SearchEngineParser(object):
 
                     elif 'cki' in qs:
                         try:
-                            q = urlopen(url_parts.geturl()).read().decode('utf-8')
-                            keyword = re.findall(r'<title.*?>(.*?)</title>', q)[0]
-                            keyword, _ = keyword.rsplit('-', 1)
-                            keyword = keyword.strip()
+                            content = urlopen(url_parts.geturl()).read().decode('utf-8')
+
+                            match = re.search(r'<title.*?>(.*?)</title>', content)
+                            if match:
+                                keyword = match.group(1)
+                                keyword, _ = keyword.rsplit('-', 1)
+                                keyword = keyword.strip()
                         except:
                             pass
+                    elif 'from=' in url_parts.path and 'w=0_10_' in url_parts.path:
+                        match = re.search(r'/w=0_10_(.*?)/t', url_parts.path)
+                        if match:
+                            keyword = match.group(1)
 
                 # Now we have to check for a tricky case where it is a SERP
                 # but just with no keyword as can be the case with Google,

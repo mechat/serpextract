@@ -894,6 +894,7 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
 
         // soso.com
         'www.soso.com'                   => array('Soso', 'w', 'q?w={k}', 'gb2312'),
+        '{}.soso.com'                    => array('Soso', 'w', 'q?w={k}', 'gb2312'),
 
         // sputnik.ru
         'www.sputnik.ru'                 => array('Sputnik', 'q', 'search?q={k}'),
