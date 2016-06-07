@@ -11,7 +11,7 @@ from itertools import groupby
 import pylru
 from iso3166 import countries
 from six import iteritems, itervalues, PY2, PY3, string_types, text_type
-from six.moves.urllib.parse import urlparse, parse_qs, ParseResult
+from six.moves.urllib.parse import urlparse, parse_qs, ParseResult, unquote
 from six.moves.urllib.request import urlopen
 import chardet
 # import pkg_resources
@@ -485,6 +485,12 @@ class SearchEngineParser(object):
                         match = re.search(r'/w=0_10_(.*?)/t', url_parts.path)
                         if match:
                             keyword = match.group(1)
+                            # if need unquote
+                            if keyword.startswith('%'):
+                                if PY3:
+                                    keyword = unquote(keyword)
+                                else:
+                                    keyword = unquote(keyword.encode('raw_unicode_escape')).decode('UTF-8')
 
                 # Now we have to check for a tricky case where it is a SERP
                 # but just with no keyword as can be the case with Google,
