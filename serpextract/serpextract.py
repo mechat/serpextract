@@ -485,12 +485,6 @@ class SearchEngineParser(object):
                         match = re.search(r'/w=0_10_(.*?)/t', url_parts.path)
                         if match:
                             keyword = match.group(1)
-                            # if need unquote
-                            if keyword.startswith('%'):
-                                if PY3:
-                                    keyword = unquote(keyword)
-                                else:
-                                    keyword = unquote(keyword.encode('raw_unicode_escape')).decode('UTF-8')
 
                 # Now we have to check for a tricky case where it is a SERP
                 # but just with no keyword as can be the case with Google,
@@ -505,6 +499,13 @@ class SearchEngineParser(object):
                 elif keyword is None and engine_name == 'Yahoo!' and \
                      url_parts.netloc.lower() == 'r.search.yahoo.com':
                     keyword = ''
+
+        # if need unquote
+        if keyword and keyword.startswith('%'):
+            if PY3:
+                keyword = unquote(keyword)
+            else:
+                keyword = unquote(keyword.encode('raw_unicode_escape')).decode('UTF-8')
 
         return ExtractResult(engine_name, keyword or '', self)
 
