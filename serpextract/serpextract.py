@@ -30,7 +30,6 @@ except ImportError:
             moddir = os.path.dirname(__file__)
             f = os.path.join(moddir, resource_name)
             return open(f)
-
 # import cPickle
 # for performance with a fallback on Python pickle
 try:
@@ -73,7 +72,6 @@ def _unicode_parse_qs(qs, **kwargs):
     if PY3 or isinstance(qs, bytes):
         # Nothing to do
         return parse_qs(qs, **kwargs)
-
     qs = qs.encode('utf-8', 'ignore')
     query = parse_qs(qs, **kwargs)
     unicode_query = {}
@@ -83,7 +81,12 @@ def _unicode_parse_qs(qs, **kwargs):
             # because we ignore decode errors and only support utf-8 right now,
             # we could end up with a blank string which we ignore
             continue
-        unicode_query[uni_key] = [p.decode('utf-8', 'ignore') for p in query[key]]
+        unicode_query[uni_key] = []
+
+        # urlencode gb2312 query=%c4%e3%ba%c3 = 你好
+        for p in query[key]:
+            encoding = chardet.detect(p)['encoding'] or 'utf-8'
+            unicode_query[uni_key].append(p.decode(encoding, 'ignore'))
     return unicode_query
 
 
@@ -206,11 +209,16 @@ def _get_search_engines():
     return _engines
 
 
+_piwik_engines = None
 def _get_piwik_engines():
     """
     Return the search engine parser definitions stored in this module. We don't
     cache this result since it's only supposed to be called once.
     """
+    global _piwik_engines
+    if _piwik_engines:
+        return _piwik_engines
+
     stream = pkg_resources.resource_stream
     pickle_path = 'search_engines.py{}.pickle'.format(sys.version_info[0])
     with stream(__name__, pickle_path) as picklestream:
@@ -260,6 +268,7 @@ def _get_lossy_domain(domain):
                           '.{}' if res['tldcc'] else res['tld'] or '')
 
     if output in _engines:
+        _domain_cache[domain] = output
         return output
 
     # ffff.abc.com =  {}.abc.com
@@ -267,10 +276,12 @@ def _get_lossy_domain(domain):
     for i in wildcard_engines:
         j = i.replace('.', '\.').replace('{}', '.*?')
         if re.compile(j).match(output):
+            _domain_cache[domain] = i
             return i
-
+    # a.b.c.d.abc.com = abc.com
     for i in base_domain_engines:
         if output.endswith(i):
+            _domain_cache[domain] = i
             return i
     return domain
 
@@ -369,7 +380,6 @@ class SearchEngineParser(object):
         """
         original_query = _serp_query_string(url_parts)
         query = _unicode_parse_qs(original_query, keep_blank_values=True)
-
         keyword = None
         engine_name = self.engine_name
 
@@ -485,6 +495,12 @@ class SearchEngineParser(object):
                         match = re.search(r'/w=0_10_(.*?)/t', url_parts.path)
                         if match:
                             keyword = match.group(1)
+                        # if need unquote
+                        if keyword and keyword.startswith('%'):
+                            if PY3:
+                                keyword = unquote(keyword)
+                            else:
+                                keyword = unquote(keyword.encode('raw_unicode_escape')).decode('UTF-8')
 
                 # Now we have to check for a tricky case where it is a SERP
                 # but just with no keyword as can be the case with Google,
@@ -499,13 +515,6 @@ class SearchEngineParser(object):
                 elif keyword is None and engine_name == 'Yahoo!' and \
                      url_parts.netloc.lower() == 'r.search.yahoo.com':
                     keyword = ''
-
-        # if need unquote
-        if keyword and keyword.startswith('%'):
-            if PY3:
-                keyword = unquote(keyword)
-            else:
-                keyword = unquote(keyword.encode('raw_unicode_escape')).decode('UTF-8')
 
         return ExtractResult(engine_name, keyword or '', self)
 
