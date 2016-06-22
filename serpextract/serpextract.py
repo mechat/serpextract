@@ -501,6 +501,10 @@ class SearchEngineParser(object):
                                 keyword = unquote(keyword)
                             else:
                                 keyword = unquote(keyword.encode('raw_unicode_escape')).decode('UTF-8')
+                elif engine_name == 'Sogou':
+                    sougou_keyword_prefix = 'http://www.sogou.com/web?query'
+                    if not keyword and sougou_keyword_prefix in query:
+                        keyword = query[sougou_keyword_prefix][0]
 
                 # Now we have to check for a tricky case where it is a SERP
                 # but just with no keyword as can be the case with Google,
