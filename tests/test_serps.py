@@ -77,6 +77,14 @@ class TestSERPs(unittest.TestCase):
         )
         self.assertValidSERPs(serps)
 
+    def test_sogou(self):
+
+        serps = (
+            ('http://www.sogou.com/135b734948f39ef3f625a90e58c89f03.1466504490.html?http://www.sogou.com/web?query=3级营养师&_asf=www.sogou.com&_ast=1466504490&w=01019900&p=40040100&ie=utf8&sut=3293&sst0=1410248725467&lkt=7,1410248722174,1410248723534', 'Sogou', u'3级营养师'),
+
+        )
+        self.assertValidSERPs(serps)
+
     def test_yahoo(self):
         serps = (
             ('http://ca.search.yahoo.com/search;_ylt=At9vKXZDJTDsQ6o7bDQPLBUt17V_;_ylc=X1MDMjE0MjYyMzUzMwRfcgMyBGZyA3lmcC10LTcxNQRuX2dwcwMxMARvcmlnaW4DY2EueWFob28uY29tBHF1ZXJ5A2hlbGxvBHNhbwMx?p=hello&toggle=1&cop=mss&ei=UTF-8&fr=yfp-t-715', 'Yahoo!', u'hello'),
