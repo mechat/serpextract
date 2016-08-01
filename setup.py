@@ -23,12 +23,12 @@ with open('README.rst', 'r') as f:
     long_description = f.read()
 
 setup(
-    name='serpextract',
+    name='serpextract-meiqia',
     version=get_version(),
     author='Mike Sukmanowsky',
     author_email='mike@parsely.com',
     packages=['serpextract',],
-    url='http://github.com/Parsely/serpextract/',
+    url='http://github.com/Meiqia/serpextract/',
     license='LICENSE.txt',
     keywords='search engines keyword extract',
     description='Easy extraction of keywords from search engine results pages (SERPs).',
