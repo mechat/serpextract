@@ -1,6 +1,7 @@
 *.pyc
 build
 dist
+.idea
 serpextract.egg-info
 .DS_Store
 docs/_build
