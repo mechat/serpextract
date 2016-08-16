@@ -19,7 +19,7 @@ script:
   - nosetests
 
 after_success:
-  - if [ -n "${TRAVIS_TAG}" ]; then python setup.py sdist; s3pypi --region "${AWS_REGION}" --bucket "${AWS_S3_BUCKET}"; fi
+  - if [ -n "${TRAVIS_TAG}" ]; then python setup.py sdist; pip install s3pypi; s3pypi --region "${AWS_REGION}" --bucket "${AWS_S3_BUCKET}"; fi
 
 notifications:
   email: false
