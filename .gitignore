@@ -2,7 +2,7 @@
 build
 dist
 .idea
-serpextract.egg-info
+*.egg-info
 .DS_Store
 docs/_build
 .cache
