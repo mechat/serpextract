@@ -13,7 +13,7 @@ env:
   - secure: hABEjuAWWxg5sOEtvQuhdQVGkhaFbfT6NWSJkATFHJHUiGP7De7y9Gba4dDG/slgeGswtBshksHwn50Pe9KJbB4irIzbI/N6Q6UMQW2aMm/Jc9pFYZSU0WSGmBHKMkVQe2LvrAnch7QkHotV5vSV9ZRmrIF23b0lm4h7RoNIR9CPiP4qyUxZqf86lwg4/igdWigvxTbic7lPP2eNM9dIYflyDYIv9fzcZD2p+EAgtr+sKHtsTHzsywUGRtQkAW+J3vk4SX71HGQvbqAnTquGxMKOZM4QJuEzitwIqZohDdaU95i99ej5zgQLCGzFwarldeJo65hnKmN3OQFo9gcxpoASZ3Fy8Qie6PUwyOwyKXYUXZ3V6P+Y4PXDtk6335TlYaCviukWN0pzibOYRgYWV3x/OeAeE6QstDnO8PlarRqzGlSLW4e0wPrxCwqBKNHuDzgzWOXCOjAB1N3Z/tXTUOQPqNvsMMrD1xQh2gfuXUDND86rKpbPfbyz6GIUItc+9ilhIKNR+HtiHD28/e7taiA6LCJVJ8W7iOEpO/Im/LZpBAOpN0cUKCscnC+NR2Z2u8f85Gv2huXBwYQlml0BNW6RcQ+cAoe0K5Fr0ja+unVQDdN9uBcyLnsWn854pf3oT7JNHBHRRBFyxCMPwWHeObxnlmzfVYQVFvChN/F74sE=
 
 install:
-  - pip install -r requirements.txt --use-mirrors
+  - pip install -r requirements.txt -r test-requirements.txt
 
 script:
   - nosetests
