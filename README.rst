@@ -1,8 +1,8 @@
 serpextract
 ===========
 
-.. image:: https://travis-ci.org/Parsely/serpextract.png?branch=master
-   :target: https://travis-ci.org/Parsely/serpextract
+.. image:: https://travis-ci.org/Meiqia/serpextract.png?branch=master
+   :target: https://travis-ci.org/Meiqia/serpextract
 
 ``serpextract`` provides easy extraction of keywords from search engine results pages (SERPs).
 
