@@ -3,9 +3,11 @@ machine:
     version: 2.7.10
 
 dependencies:
-  pre:
+  override:
     - pip install -U setuptools
     - pip install -r requirements.txt -r test-requirements.txt
+
+test:
   override:
     - nosetests
 
