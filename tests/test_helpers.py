@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import unittest
-from mock import patch
 from six.moves.urllib.parse import urlparse
 
 from serpextract import serpextract
@@ -34,13 +33,7 @@ class TestSERPExtractUtilityFunctions(unittest.TestCase):
             actual = is_url_without_path_query_or_fragment(parts)
             self.assertEqual(actual, expected)
 
-    @patch('serpextract.serpextract._get_piwik_engines')
-    def test_get_lossy_domain(self, _get_piwik_engines):
-        _get_piwik_engines.return_value = {
-            'a.com': '',
-            'a.{}': '',
-            '{}.a.com': ''
-        }
+    def test_get_lossy_domain(self):
         get_lossy_domain = serpextract._get_lossy_domain
 
         url = 'www.a.com'
