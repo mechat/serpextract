@@ -2,6 +2,7 @@ import re
 import sys
 from setuptools import setup
 
+
 # Get version without importing, which avoids dependency issues
 def get_version():
     with open('serpextract/__init__.py') as version_file:
@@ -12,7 +13,6 @@ install_requires = [
     'iso3166 >= 0.4',
     'pylru >= 1.0.3',
     'tldextract >= 1.2',
-    'chardet==2.3.0',
 ]
 
 if sys.version_info <= (2,7):

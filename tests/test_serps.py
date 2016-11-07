@@ -24,18 +24,11 @@ class TestSERPs(unittest.TestCase):
     def setUp(self):
         self.custom_serp_url = 'http://search.piccshare.com/search.php?cat=web&channel=main&hl=en&q=test'
         self.custom_parser = SearchEngineParser(u'PiccShare', u'q',
-                                                u'/search.php?q={k}',u'utf-8')
+                                                u'/search.php?q={k}', u'utf-8')
 
     def assertInvalidSERP(self, url, **kwargs):
-        result = extract(url, **kwargs)
-        if result:
-            self.assertIsNotNone(result.engine_name)
-            self.assertEqual(result.keyword, '')
-            self.assertTrue(is_serp(url, **kwargs))
-        else:
-            self.assertIsNone(result)
-            self.assertFalse(is_serp(url, **kwargs))
-
+        self.assertIsNone(extract(url, **kwargs))
+        self.assertFalse(is_serp(url, **kwargs))
 
     def assertValidSERP(self, url, expected_engine_name, expected_keyword, **kwargs):
         # Test both the URL and a parsed URL version
@@ -73,6 +66,7 @@ class TestSERPs(unittest.TestCase):
             ('http://m.baidu.com/from=0/bd_page_type=1/ssid=0/uid=0/pu=usm@0,sz@224_220,ta@iphone____/baiduid=6BEF6FCD0833D05E88F8CEFB8CE2A310/w=0_10_%e5%b9%bf%e5%b7%9e%e6%9c%80%e5%a5%bd%e7%9a%84%e4%b8%8d%e8%82%93%e4%b8%8d%e5%ad%95/t=iphone/l=1/tc?ref=www_iphone&lid=14895349192324046419&order=7&vit=osres&tj=www_normal_7_0_10_title&waput=2&waplogo=1&cltj=normal_title&dict=-1&nt=wnor&title=,...&sec=12463&di=f0fc7f4b2a312667&bdenc=1&nsrc=IlPT2AEptyoA_yixCFOxXnANedT62v3IVRHPMjRG18Sxo9jpnK', 'Baidu', u'广州最好的不肓不孕'),
 
             ('http://m.baidu.com/s?tn=zbios&pu=sz%401320_480%2Ccuid%40la2si_O62i_OaH8sgu2BalajHiYgaH8IgOSu808Cva8Ca-8gYPvli_uqv8_Ea2tWA%2Ccua%40_PvjhYa6vhIDJEjPkJAiC_CVBhxVGNGoC%2Ccut%405kSYMltqeC_kavNkJavjh_h02IgUNvikyf3NuDhwWexZB%2Cosname%40baiduboxapp%2Cctv%402%2Ccfrom%40100027o%2Ccen%40cuid_cua_cut%2Ccsrc%40app_mainbox_txt&bd_page_type=1&word=JA%2Fp%2B5L7M%7AbPQiXwy%2FwNvsehkuDQ7MkKYlc7KBr%396F3%2FK7nn%7AIyc4bEsILLktNREw4av3%7Au6LK8evDN0J1%39N6Q%3D%3D&cki=1&from=100027o&pkgname=com.baidu.searchbox&network=1_0&bdna=0&rq=ia32CwEEkD5%2BrODe7teev%7AxDEeFDnwewm1g0b6lDp%5AL2gR28C3QFsgSf7rt%2F5ccYQAi6YdcJuSOBWUtroCOnDw%3D%3D&ckirq=1&sa=ikb&ss=110', 'Baidu', u'美洽'),
+            ('http://www.baidu.com/baidu.php?sc.000000KxuWOh0sww8Ncws3b6qsvBM5EsZQ3ifYsNPsl1lP8iM2zSgXpt7qJ2gKpeX-hd9TlHdqX4ifUFNHfrkZPYGt8I7u00Jn3Ou9GEZ2gywaY2rDmSZo2pYRGlD0U_STnrVp7agmYMi0zSe5WcjWMmbnktRVunPuLYDzhn5lnN__hrj0.7b_jQ-CtbZjf6zyNeCr7vpGn7ZCdLme8gFug869uB4q3Ir5DklOx4uevTyj5jW913ShEl4O-zvNt_ngQukSEQjsT85GoSEQukSEQg8_LTUnOz4IXW-oLyU_-MQIYyUS5d1OQ5OOeOvM_O-uSH5O0sFO3jOJ-OOmIhOOqueQPMW3qhXKPvajoa1zLRAQr_Q5Qv3hn-IMuklIheIgud9u4IPdKBEoa1zsOfkELyuQr1k_tpS_Q521IWm9ClJS_Q5QWC_ImyXgHfmols_t8rFBEoa1z_LYAr_Q5QAeKPa-Wdukm7Bmerz1I8_LUSyZZn_nYQAi1__oR.U1Yk0ZDqEP5DseH1sxHwGexwYtn0IjvtYtHjV55wGtSsVqZHssKGUHYznjf0u1dEugK1nfKdpHdBmy-bIfKspyfqnWR0mv-b5Hcsn6KVIjYknjDLg1nsnHNxnH0kndtznjRkg1Dsn1PxnH0krNt1njc40AVG5H00TMfqnWnd0ANGujYkPjfkg1D3nWfkg1cknj64g1ckPjRdg1ckn1bdg1ckn1TLg1cknH64g1ckn1n40AFG5Hcsndtznjf0UynqnWndP1fzn16Lg1DznjckPHTzPH-xPjT3njRsn1mYg1T1PWn3PWuxnW04rjRkPjfvndtzn1RzP1msnj9xnHcYPWf4rH6vn0KkTA-b5H00TyPGujYs0ZFMIA7M5H00ULu_5HDznadbX-tknWDVrHb4rH-xnHmdPBdbX-t1rj61Qywlg1fzPH6VnNtYn1c3QHDvg1f3n1cVuZGxPj63naYkg1f4nWmVnNtYrHnLQywlg1RknWfVuZGxPHDvradbX-tdnHbsQHFxPHnzradbX-tdPjndQywlg1RYPW6VuZGxPHfLPzdbX-tdPj6LQHPxPHf4nBYYg1RdP1RVuZGxPHmsradbX-tdPWRYQywlg1RvPWmVr7tdP1DLQH7xPHT1PBdbX-tdP1fkQH7xPHTdPiYkg1b4riYk0A7B5HKxn0K-ThTqn6KsTjYs0A4vTjYsQW0snj0snj0s0AdYTjYs0AwbUL0qn0KzpWYs0Aw-IWdsmsKhIjYs0ZKC5H00ULnqn0KBI1Y40A4Y5H00TLCq0ZwdT1YzPjD1PWfvnW6zrHDdnHRznWb40ZF-TgfqnHfLrjn4nWbLrHnYP6KWpjd_INqsTsKYIHddnWTYPjndrfK15HDvnjT4PWPbmhRvrH0kPvc0ph_qmvmkrjuhuW7bnvDvPjfLu6KYUHYkPjc3n10Y0APh5HD0Thcqn0K_IyVG5Hn0mv4YUWYYPj0dPH0drNqWTZc0TLPs5HD0TLPsnWYk0ZwYTjYk0ZIG5Hf0uMPWpAdb5Hc0IAfqnWTYPjndrfKdThsqpZwYTjCEQLILIz4Wmy4omyq3py7EXAb8mvqVQLFEUAsknaqBuatznjDvnHDsPitkPj0srHTvQMPCIAd_0ZPGujY3PWuBuHRLnW0snj0znyFB0AP1UHYdrH03wHNjP1uawjNKnDFD0A7W5HD0TA3qn0KkUgfqn0KkUgnqn0KlIjYs0AdWgvuzUvYqn7tknjfvg1Kxn7tsg1Kxn0KbIA-b5H00ugwGujYVnfK9TLKWm1Ys0ZNspy4Wm1Ys0Z7VuWYs0AuWIgfqn0KlTAkdT1Ys0APzm1YdP1b4n6&us=0.0.0.0.0.0.42&ck=5354.5.310.316.280.549.284.8255&shh=www.baidu.com&sht=44055059_cpr&us=1.0.1.0.6.16402.0.19&ie=utf-8&f=8&tn=44055059_cpr&wd=%E5%8A%A0%E6%8B%BF%E5%A4%A7%E7%95%99%E5%AD%A6%E8%B4%B9%E7', 'Baidu', u'加拿大留学费\ufffd'),
             ('http://www.baidu.com/s?wd=%CD%E2%CE%A7%C4%A3%CC%D8%C9%CC%CE%F1%BB%E1', 'Baidu', u'外围模特商务会'),
         )
         self.assertValidSERPs(serps)
@@ -150,9 +144,10 @@ class TestSERPs(unittest.TestCase):
             'http://www.google.com/ig',
             'http://plus.url.google.com/url?sa=z&n=1374157226744&url=http%3A%2F%2Ftgam.ca%2FDsyz&usg=CSc5XfUHV6imxjYmxocn-G-rPyg',
             'http://news.google.com/',
-            'http://www.yahoo.com/',
             'http://www.something.com/',
             'http://www.reddit.com/',
+            'http://www.yahoo.com/',
+            'https://www.yahoo.com/'
         )
         for url in invalid_serps:
             self.assertInvalidSERP(url)
