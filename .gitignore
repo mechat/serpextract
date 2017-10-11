@@ -1,8 +1,7 @@
-*.py[cod]
-build/
-dist/
-.idea/
-.venv/
+*.pyc
+build
+dist
+.idea
 *.egg-info
 .DS_Store
 docs/_build
