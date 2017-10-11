@@ -6,15 +6,14 @@ from __future__ import absolute_import, division, print_function
 import logging
 import re
 import sys
-from collections import defaultdict
-from io import TextIOWrapper
+from itertools import groupby
 
 import pylru
-import tldextract
 from iso3166 import countries
-import requests
-from six import iteritems, itervalues, PY2, PY3, string_types, text_type, binary_type
+from six import iteritems, itervalues, PY2, PY3, string_types, text_type
 from six.moves.urllib.parse import urlparse, parse_qs, ParseResult, unquote
+from six.moves.urllib.request import urlopen
+import chardet
 # import pkg_resources
 # with fallback for environments that lack it
 try:
@@ -31,17 +30,16 @@ except ImportError:
             moddir = os.path.dirname(__file__)
             f = os.path.join(moddir, resource_name)
             return open(f)
-
-# import ujson for performance with a fallback on default json
+# import cPickle
+# for performance with a fallback on Python pickle
 try:
-    import ujson as json
+    import cPickle as pickle
 except ImportError:
-    import json
+    import pickle
 
 
 __all__ = ('get_parser', 'is_serp', 'extract', 'get_all_query_params',
-           'get_all_query_params_by_domain', 'add_custom_parser',
-           'SearchEngineParser')
+           'add_custom_parser', 'SearchEngineParser')
 
 log = logging.getLogger('serpextract')
 
@@ -60,20 +58,20 @@ _domain_cache = pylru.lrucache(500)
 _naive_re = re.compile(r'\.?search\.')
 _naive_params = ('q', 'query', 'k', 'keyword', 'term',)
 
-
 def _unicode_parse_qs(qs, **kwargs):
     """
     A wrapper around ``urlparse.parse_qs`` that converts unicode strings to
     UTF-8 to prevent ``urlparse.unquote`` from performing it's default decoding
     to latin-1 see http://hg.python.org/cpython/file/2.7/Lib/urlparse.py
+
     :param qs:       Percent-encoded query string to be parsed.
     :type qs:        ``str``
+
     :param kwargs:   Other keyword args passed onto ``parse_qs``.
     """
     if PY3 or isinstance(qs, bytes):
         # Nothing to do
         return parse_qs(qs, **kwargs)
-
     qs = qs.encode('utf-8', 'ignore')
     query = parse_qs(qs, **kwargs)
     unicode_query = {}
@@ -83,7 +81,12 @@ def _unicode_parse_qs(qs, **kwargs):
             # because we ignore decode errors and only support utf-8 right now,
             # we could end up with a blank string which we ignore
             continue
-        unicode_query[uni_key] = [p.decode('utf-8', 'ignore') for p in query[key]]
+        unicode_query[uni_key] = []
+
+        # urlencode gb2312 query=%c4%e3%ba%c3 = 你好
+        for p in query[key]:
+            encoding = chardet.detect(p)['encoding'] or 'utf-8'
+            unicode_query[uni_key].append(p.decode(encoding, 'ignore'))
     return unicode_query
 
 
@@ -144,7 +147,7 @@ def _is_url_without_path_query_or_fragment(url_parts):
     :param url_parts: A URL.
     :type url_parts:  :class:`urlparse.ParseResult`
     """
-    return url_parts.path.strip('/') in ['', 'search'] and url_parts.query == '' \
+    return url_parts.path.strip('/') == '' and url_parts.query == '' \
            and url_parts.fragment == ''
 
 _engines = None
@@ -163,53 +166,71 @@ def _get_search_engines():
     # Engine names are the first param of each of the search engine arrays
     # so we group by those guys, and create our new dictionary with that
     # order
+    get_engine_name = lambda x: x[1][0]
+    definitions_by_engine = groupby(iteritems(piwik_engines), get_engine_name)
     _engines = {}
 
-    for engine_name, rule_group in iteritems(piwik_engines):
+    for engine_name, rule_group in definitions_by_engine:
         defaults = {
             'extractor': None,
             'link_macro': None,
-            'charsets': ['utf-8'],
-            'hiddenkeyword': None
+            'charsets': ['utf-8']
         }
 
-        for rule in rule_group:
-            for i, domain in enumerate(rule['urls']):
-                if i == 0:
-                    defaults['extractor'] = rule['params']
-                    if 'backlink' in rule:
-                        defaults['link_macro'] = rule['backlink']
-                    if 'charsets' in rule:
-                        defaults['charsets'] = rule['charsets']
-                    if 'hiddenkeyword' in rule:
-                        defaults['hiddenkeyword'] = rule['hiddenkeyword']
-
+        for i, rule in enumerate(rule_group):
+            domain = rule[0]
+            rule = rule[1][1:]
+            if i == 0 and len(rule) > 0:
+                defaults['extractor'] = rule[0]
+                if len(rule) >= 2:
+                    defaults['link_macro'] = rule[1]
+                if len(rule) >= 3:
+                    defaults['charsets'] = rule[2]
                 _engines[domain] = SearchEngineParser(engine_name,
                                                       defaults['extractor'],
                                                       defaults['link_macro'],
-                                                      defaults['charsets'],
-                                                      defaults['hiddenkeyword'])
+                                                      defaults['charsets'])
+                continue
+
+            # Default args for SearchEngineParser
+            args = [engine_name, defaults['extractor'],
+                    defaults['link_macro'], defaults['charsets']]
+            if len(rule) >= 1 and rule[0]:
+                args[1] = rule[0]
+
+            if len(rule) >= 2 and rule[1]:
+                args[2] = rule[1]
+
+            if len(rule) == 3 and rule[2]:
+                args[3] = rule[2]
+
+            _engines[domain] = SearchEngineParser(*args)
 
     return _engines
 
 
+_piwik_engines = None
 def _get_piwik_engines():
     """
     Return the search engine parser definitions stored in this module. We don't
     cache this result since it's only supposed to be called once.
     """
+    global _piwik_engines
+    if _piwik_engines:
+        return _piwik_engines
+
     stream = pkg_resources.resource_stream
-    with stream(__name__, 'search_engines.json') as json_stream:
-        if PY3:
-            if hasattr(json_stream, 'buffer'):
-                json_stream = TextIOWrapper(json_stream.buffer, encoding='utf-8')
-            else:
-                json_stream = TextIOWrapper(json_stream, encoding='utf-8')
-        _piwik_engines = json.load(json_stream)
+    pickle_path = 'search_engines.py{}.pickle'.format(sys.version_info[0])
+    with stream(__name__, pickle_path) as picklestream:
+        _piwik_engines = pickle.load(picklestream)
+
     return _piwik_engines
 
 
 _get_lossy_domain_regex = None
+wildcard_engines = None # {}.google.com, ...
+base_domain_engines = None # google.com, yahoo.com, ...
+
 def _get_lossy_domain(domain):
     """
     A lossy version of a domain/host to use as lookup in the ``_engines``
@@ -218,28 +239,51 @@ def _get_lossy_domain(domain):
     :param domain: A string that is the ``netloc`` portion of a URL.
     :type domain:  ``bytes``
     """
-    global _domain_cache, _get_lossy_domain_regex
+    global _domain_cache, _get_lossy_domain_regex, wildcard_engines, base_domain_engines
 
     if domain in _domain_cache:
         return _domain_cache[domain]
+    _engines = _get_piwik_engines()
+
+    if not wildcard_engines:
+       wildcard_engines = [i for i in _engines.keys() if '{}' in i]
+
+    if not base_domain_engines:
+       base_domain_engines = [i for i in _engines.keys() if len(i.split('.')) == 2]
 
     if not _get_lossy_domain_regex:
         codes = '|'.join(_country_codes)
         _get_lossy_domain_regex = re.compile(
-            r'^' # start of string
-            r'(?:w+\d*\.|search\.|m\.)*' + # www. www1. search. m.
-            r'((?P<ccsub>{})\.)?'.format(codes) + # country-code subdomain
-            r'(?P<domain>.*?)' + # domain
-            r'(?P<tld>\.(com|org|net|co|edu|cn))?' + # tld
-            r'(?P<tldcc>\.({}))?'.format(codes) + # country-code tld
-            r'$') # all done
+                r'^' # start of string
+                r'(?:w+\d*\.|search\.|m\.)*' + # www. www1. search. m.
+                r'((?P<ccsub>{})\.)?'.format(codes) + # country-code subdomain
+                r'(?P<domain>.*?)' + # domain
+                r'(?P<tld>\.(com|org|net|co|edu|cn))?' + # tld
+                r'(?P<tldcc>\.({}))?'.format(codes) + # country-code tld
+                r'$') # all done
 
     res = _get_lossy_domain_regex.match(domain).groupdict()
     output = u'%s%s%s' % ('{}.' if res['ccsub'] else '',
                           res['domain'],
                           '.{}' if res['tldcc'] else res['tld'] or '')
-    _domain_cache[domain] = output # Add to LRU cache
-    return output
+
+    if output in _engines:
+        _domain_cache[domain] = output
+        return output
+
+    # ffff.abc.com =  {}.abc.com
+    # fff.abc.com.ok = {}.abc.{}
+    for i in wildcard_engines:
+        j = i.replace('.', '\.').replace('{}', '.*?')
+        if re.compile(j).match(output):
+            _domain_cache[domain] = i
+            return i
+    # a.b.c.d.abc.com = abc.com
+    for i in base_domain_engines:
+        if output.endswith(i):
+            _domain_cache[domain] = i
+            return i
+    return domain
 
 
 class ExtractResult(object):
@@ -255,10 +299,6 @@ class ExtractResult(object):
         return repr_fmt.format(self.engine_name, self.keyword, self.parser)
 
 
-_HTML_TITLE_RE = re.compile(r'<title\b[^>]*>(.*?)</title>')
-_BAIDU_URL_PARTS_RE = re.compile(r'/w=0_10_(.*?)/t')
-
-
 class SearchEngineParser(object):
     """Handles persing logic for a single line in Piwik's list of search
     engines.
@@ -271,13 +311,9 @@ class SearchEngineParser(object):
     exact search engine you want to use to parse a URL. The main interface
     for users of this module is the :func:`extract` method.
     """
-    __slots__ = ('engine_name', 'keyword_extractor', 'link_macro', 'charsets',
-                 'hidden_keyword_paths')
+    __slots__ = ('engine_name', 'keyword_extractor', 'link_macro', 'charsets')
 
-    _NO_KEYWORD = u'####NO_KEYWORDS_SPECIFIED####'
-
-    def __init__(self, engine_name, keyword_extractor, link_macro, charsets,
-                 hidden_keyword_paths=None):
+    def __init__(self, engine_name, keyword_extractor, link_macro, charsets):
         """New instance of a :class:`SearchEngineParser`.
 
         :param engine_name:         the friendly name of the engine (e.g.
@@ -296,15 +332,9 @@ class SearchEngineParser(object):
 
         :param charsets:            a string or list of charsets to use to
                                     decode the keyword
-
-        :param hidden_keywords_paths: an optional list of strings (that may
-                                      contain regular expressions) describing
-                                      valid paths for the search engine that may
-                                      not contain any keywords. Regular
-                                      expressions are expected to be surround by
-                                      `/` characters.
         """
         self.engine_name = engine_name
+        keyword_extractor = keyword_extractor or ''
         if isinstance(keyword_extractor, string_types):
             keyword_extractor = [keyword_extractor]
         self.keyword_extractor = keyword_extractor[:]
@@ -319,16 +349,6 @@ class SearchEngineParser(object):
         if isinstance(charsets, string_types):
             charsets = [charsets]
         self.charsets = [c.lower() for c in charsets]
-        if hidden_keyword_paths:
-            self.hidden_keyword_paths = hidden_keyword_paths[:]
-        else:
-            self.hidden_keyword_paths = []
-        for i, path in enumerate(self.hidden_keyword_paths):
-            # Pre-compile all the regular expressions
-            if len(path) > 1 and path.startswith('/') and path.endswith('/'):
-                path = path.strip('/')
-                path = re.compile(path)
-                self.hidden_keyword_paths[i] = path
 
     def get_serp_url(self, base_url, keyword):
         """
@@ -360,7 +380,6 @@ class SearchEngineParser(object):
         """
         original_query = _serp_query_string(url_parts)
         query = _unicode_parse_qs(original_query, keep_blank_values=True)
-
         keyword = None
         engine_name = self.engine_name
 
@@ -372,7 +391,8 @@ class SearchEngineParser(object):
             # e.g. &prev=/search%3Fq%3Dimages%26sa%3DX%26biw%3D320%26bih%3D416%26tbm%3Disch
             engine_name = 'Google Images'
             if 'prev' in query:
-                query = _unicode_parse_qs(_unicode_urlparse(query['prev'][0]).query)
+                prev_query = _unicode_parse_qs(urlparse(query['prev'][0]).query)
+                keyword = prev_query.get('q', [None])[0]
         elif engine_name == 'Google' and 'as_' in original_query:
             # Google has many different ways to filter results.  When some of
             # these filters are applied, we can no longer just look for the q
@@ -384,23 +404,23 @@ class SearchEngineParser(object):
             # Search Operator: None (same as normal search)
             key = query.get('as_q')
             if key:
-                keys.append(key[0])
+              keys.append(key[0])
             # Results should contain any of these words
             # Search Operator: <keyword> [OR <keyword>]+
             key = query.get('as_oq')
             if key:
-                key = key[0].replace('+', ' OR ')
-                keys.append(key)
+              key = key[0].replace('+', ' OR ')
+              keys.append(key)
             # Results should match the exact phrase
             # Search Operator: "<keyword>"
             key = query.get('as_epq')
             if key:
-                keys.append(u'"{}"'.format(key[0]))
+              keys.append(u'"{}"'.format(key[0]))
             # Results should contain none of these words
             # Search Operator: -<keyword>
             key = query.get('as_eq')
             if key:
-                keys.append(u'-{}'.format(key[0]))
+              keys.append(u'-{}'.format(key[0]))
 
             keyword = u' '.join(keys).strip()
 
@@ -413,59 +433,6 @@ class SearchEngineParser(object):
                 engine_name = 'Google Video'
             elif tbm == 'shop':
                 engine_name = 'Google Shopping'
-
-        # baidu is strange
-        # 1.关键词需要 decode
-        # 2.有 cki 参数加密的情况
-        # 3.默认情况
-        if engine_name == 'Baidu':
-            qs = _unicode_parse_qs(url_parts.query)
-            if 'wd' in qs:
-                input_enc = qs.get('ie') or ['gb18030']  # ie: input encoding
-                input_enc = input_enc[0]
-                try:
-                    query = url_parts.query
-                    if PY2:
-                        if isinstance(query, text_type):
-                            query = query.encode('utf-8')
-
-                        qs = parse_qs(query)
-                    else:
-                        qs = parse_qs(query, encoding=input_enc, errors='replace')
-
-                    keyword = qs['wd'][0]
-                    if isinstance(keyword, binary_type):
-                        keyword = keyword.decode(input_enc, errors='replace')
-                except Exception:
-                    pass
-            elif 'cki' in qs:
-                # In this case, keywords are encrypted, so a request to Baidu is necessary
-                try:
-                    r = requests.get(url_parts.geturl(), headers={'Accept-Encoding': ''})
-                    content = r.text
-
-                    match = _HTML_TITLE_RE.search(content)
-                    if match:
-                        keyword = match.group(1)
-                        keyword, _ = keyword.rsplit('-', 1)
-                        keyword = keyword.strip()
-                except Exception:
-                    pass
-            elif 'from=' in url_parts.path and 'w=0_10_' in url_parts.path:
-                match = _BAIDU_URL_PARTS_RE.search(url_parts.path)
-                if match:
-                    keyword = match.group(1)
-                # if need unquote
-                if keyword and keyword.startswith('%'):
-                    if PY3:
-                        keyword = unquote(keyword)
-                    else:
-                        keyword = unquote(
-                            keyword.encode('raw_unicode_escape')).decode('utf-8')
-        elif engine_name == 'Sogou':
-            sougou_keyword_prefix = 'http://www.sogou.com/web?query'
-            if not keyword and sougou_keyword_prefix in query:
-                keyword = query[sougou_keyword_prefix][0]
 
         if keyword is not None:
             # Edge case found a keyword, exit quickly
@@ -486,46 +453,83 @@ class SearchEngineParser(object):
                     # most recent
                     keyword = query[extractor][-1]
 
-                # Now we have to check for a tricky case where it is a SERP but
-                # there are no keywords
-                if keyword is None and (u'&{}='.format(extractor) in query or
-                                        u'?{}='.format(extractor) in query):
-                    keyword = self._NO_KEYWORD
+                # baidu is strange
+                # 1.关键词需要 decode
+                # 2.有cki参数加密的情况
+                # 3.默认情况
+                if engine_name == 'Baidu':
+                    qs = parse_qs(url_parts.query)
+                    if 'wd' in qs:
+                        try:
+                            if PY2:
+                                qs = parse_qs(url_parts.query.encode('utf-8'))
+                            elif PY3:
+                                qs = parse_qs(url_parts.query)
 
-                if keyword is not None or keyword == self._NO_KEYWORD:
-                    break
+                            keyword = qs['wd'][0]
+                            if '�' in keyword:
+                                qs = parse_qs(url_parts.query, encoding='GB18030')
+                                keyword = qs['wd'][0]
 
-        # if no keyword found, but empty/hidden keywords are allowed
-        if self.hidden_keyword_paths and (keyword is None or keyword is False):
-            path_with_query_and_frag = url_parts.path
-            if url_parts.query:
-                path_with_query_and_frag += u'?{}'.format(url_parts.query)
-            if url_parts.fragment:
-                path_with_query_and_frag += u'#{}'.format(url_parts.fragment)
-            for path in self.hidden_keyword_paths:
-                if not isinstance(path, string_types):
-                    if path.search(path_with_query_and_frag):
-                        keyword = self._NO_KEYWORD
-                        break
-                elif path == path_with_query_and_frag:
-                    keyword = self._NO_KEYWORD
-                    break
+                            encoding = chardet.detect(keyword)['encoding']
 
-        if keyword:
-            # Replace special placeholder with blank string
-            if keyword == self._NO_KEYWORD:
-                keyword = u''
-            return ExtractResult(engine_name, keyword, self)
+                            # 使用最新GBK编码
+                            if encoding == 'GB2312' or not encoding:
+                                encoding = 'GB18030'
+                            keyword = keyword.decode(encoding)
+                        except:
+                            pass
+
+                    elif 'cki' in qs:
+                        try:
+                            content = urlopen(url_parts.geturl()).read().decode('utf-8')
+
+                            match = re.search(r'<title.*?>(.*?)</title>', content)
+                            if match:
+                                keyword = match.group(1)
+                                keyword, _ = keyword.rsplit('-', 1)
+                                keyword = keyword.strip()
+                        except:
+                            pass
+                    elif 'from=' in url_parts.path and 'w=0_10_' in url_parts.path:
+                        match = re.search(r'/w=0_10_(.*?)/t', url_parts.path)
+                        if match:
+                            keyword = match.group(1)
+                        # if need unquote
+                        if keyword and keyword.startswith('%'):
+                            if PY3:
+                                keyword = unquote(keyword)
+                            else:
+                                keyword = unquote(keyword.encode('raw_unicode_escape')).decode('UTF-8')
+                elif engine_name == 'Sogou':
+                    sougou_keyword_prefix = 'http://www.sogou.com/web?query'
+                    if not keyword and sougou_keyword_prefix in query:
+                        keyword = query[sougou_keyword_prefix][0]
+
+                # Now we have to check for a tricky case where it is a SERP
+                # but just with no keyword as can be the case with Google,
+                # DuckDuckGo or Yahoo!
+                if keyword is None and extractor == 'q' and \
+                   engine_name in ('Google Images', 'DuckDuckGo'):
+                    keyword = ''
+                elif keyword is None and extractor == 'q' and \
+                     engine_name == 'Google' and \
+                     _is_url_without_path_query_or_fragment(url_parts):
+                    keyword = ''
+                elif keyword is None and engine_name == 'Yahoo!' and \
+                     url_parts.netloc.lower() == 'r.search.yahoo.com':
+                    keyword = ''
+
+        return ExtractResult(engine_name, keyword or '', self)
 
     def __repr__(self):
         repr_fmt = ("SearchEngineParser(engine_name={!r}, "
-                    "keyword_extractor={!r}, link_macro={!r}, charsets={!r}, "
-                    "hidden_keywords={!r})")
-        return repr_fmt.format(self.engine_name,
-                               self.keyword_extractor,
-                               self.link_macro,
-                               self.charsets,
-                               self.hidden_keyword_paths)
+                    "keyword_extractor={!r}, link_macro={!r}, charsets={!r})")
+        return repr_fmt.format(
+                        self.engine_name,
+                        self.keyword_extractor,
+                        self.link_macro,
+                        self.charsets)
 
 
 def add_custom_parser(match_rule, parser):
@@ -557,32 +561,13 @@ def get_all_query_params():
     """
     engines = _get_search_engines()
     all_params = set()
+    _not_regex = lambda x: isinstance(x, string_types)
     for parser in itervalues(engines):
         # Find non-regex params
-        params = {param for param in parser.keyword_extractor
-                  if isinstance(param, string_types)}
+        params = set(filter(_not_regex, parser.keyword_extractor))
         all_params |= params
 
     return list(all_params)
-
-
-def get_all_query_params_by_domain():
-    """
-    Return all the possible query string params for all search engines.
-
-    :returns: a ``list`` of all the unique query string parameters that are
-              used across the search engine definitions.
-    """
-    engines = _get_search_engines()
-    param_dict = defaultdict(list)
-    for domain, parser in iteritems(engines):
-        # Find non-regex params
-        params = {param for param in parser.keyword_extractor
-                  if isinstance(param, string_types)}
-        tld_res = tldextract.extract(domain)
-        domain = tld_res.registered_domain
-        param_dict[domain] = list(sorted(set(param_dict[domain]) | params))
-    return param_dict
 
 
 def get_parser(referring_url):
@@ -624,16 +609,16 @@ def get_parser(referring_url):
     elif domain not in engines:
         if query[:14] == 'cx=partner-pub':
             # Google custom search engine
-            engine_key = u'google.com/cse'
+            engine_key = 'google.com/cse'
         elif url_parts.path[:28] == '/pemonitorhosted/ws/results/':
             # private-label search powered by InfoSpace Metasearch
-            engine_key = u'wsdsold.infospace.com'
+            engine_key = 'wsdsold.infospace.com'
         elif '.images.search.yahoo.com' in url_parts.netloc:
             # Yahoo! Images
-            engine_key = u'images.search.yahoo.com'
+            engine_key = 'images.search.yahoo.com'
         elif '.search.yahoo.com' in url_parts.netloc:
             # Yahoo!
-            engine_key = u'search.yahoo.com'
+            engine_key = 'search.yahoo.com'
         else:
             return None
 
@@ -716,6 +701,7 @@ def extract(serp_url, parser=None, lower_case=True, trimmed=True,
             query = _unicode_parse_qs(url_parts.query, keep_blank_values=True)
             for param in _naive_params:
                 if param in query:
+                    import tldextract
                     tld_res = tldextract.extract(url_parts.netloc)
                     return ExtractResult(tld_res.domain,
                                          query[param][0],
@@ -740,6 +726,8 @@ def extract(serp_url, parser=None, lower_case=True, trimmed=True,
 
 def main():
     import argparse
+    import sys
+    import re
 
     parser = argparse.ArgumentParser(
         description='Parse a SERP URL to extract engine name and keyword.')
