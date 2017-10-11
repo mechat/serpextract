@@ -211,11 +211,9 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
         // Baidu
         'www.baidu.com'                  => array('Baidu', array('wd', 'word', 'kw'), 's?wd={k}', array('UTF-8', 'gb2312')),
         'www1.baidu.com'                 => array('Baidu'),
-        'm.baidu.com'                    => array('Baidu', array('wd', 'word', 'kw'), 's?wd={k}', array('UTF-8', 'gb2312')),
-        'm5.baidu.com'                    => array('Baidu', array('wd', 'word', 'kw'), 's?wd={k}', array('UTF-8', 'gb2312')),
-        'pos.baidu.com'                    => array('Baidu', array('wd', 'word', 'kw'), 's?wd={k}', array('UTF-8', 'gb2312')),
+        'm.baidu.com'                    => array('Baidu'),
         'www.baidu.co.th'                => array('Baidu'),
-        'zhidao.baidu.com'               => array('Baidu', array('wd', 'word', 'kw')),
+        'zhidao.baidu.com'               => array('Baidu'),
         'tieba.baidu.com'                => array('Baidu'),
         'news.baidu.com'                 => array('Baidu'),
         'web.gougou.com'                 => array('Baidu', 'search', 'search?search={k}'), // uses baidu search
@@ -226,7 +224,7 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
 
         // Bing
         'bing.com'                       => array('Bing', array('q', 'Q'), 'search?q={k}'),
-        '{}.bing.com'                    => array('Bing', array('q', 'Q'), 'search?q={k}'),
+        '{}.bing.com'                    => array('Bing'),
         'msnbc.msn.com'                  => array('Bing'),
         'dizionario.it.msn.com'          => array('Bing'),
         'enciclopedia.it.msn.com'        => array('Bing'),
@@ -419,7 +417,7 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
 
         // Google
         'google.com'                     => array('Google', 'q', 'search?q={k}'),
-        'google.{}'                      => array('Google', 'q', 'search?q={k}'),
+        'google.{}'                      => array('Google'),
         'www2.google.com'                => array('Google'),
         'ipv6.google.com'                => array('Google'),
         'go.google.com'                  => array('Google'),
@@ -532,8 +530,7 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
         'www.gulesider.no'               => array('Gule Sider', 'q'),
 
         // Haosou
-        'www.haosou.com'                 => array('360search', 'q', 's?q={k}'),
-        'm.haosou.com'                   => array('360search', 'q', 's?q={k}'),
+        'www.haosou.com'                 => array('Haosou', 'q', 's?q={k}'),
 
         // HighBeam
         'www.highbeam.com'               => array('HighBeam', 'q', 'Search.aspx?q={k}'),
@@ -580,7 +577,7 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
         'search.webssearches.com'        => array('InfoSpace'),
         'search.fbdownloader.com'        => array('InfoSpace'),
         'searches3.globososo.com'        => array('InfoSpace'),
-
+        
         // old infospace system
         'wsdsold.infospace.com'          => array('InfoSpace', '/\/[^\/]+\/ws\/results\/[^\/]+\/([^\/]+)/', 'pemonitorhosted/ws/results/Web/{k}/1/417/TopNavigation/Source/'),
 
@@ -772,7 +769,7 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
 
     // PeopleCheck
         'extern.peoplecheck.de'            => array('PeopleCheck', 'q', 'link.php?q={k}'),
-
+    
         // Picsearch
         'www.picsearch.com'              => array('Picsearch', 'q', 'index.cgi?q={k}'),
 
@@ -796,7 +793,7 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
 
         // Qwant
         'www.qwant.com'                 => array('Qwant', 'q'),
-
+        
         // Rakuten
         'websearch.rakuten.co.jp'        => array('Rakuten', 'qt', 'WebIS?qt={k}'),
 
@@ -843,7 +840,7 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
 
         // Seznam
         'search.seznam.cz'               => array('Seznam', 'q', '?q={k}'),
-
+        
         // Seznam Videa (Video)
         'videa.seznam.cz'               => array('Seznam Videa', 'q', '?q={k}'),
 
@@ -854,18 +851,8 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
         'www.skynet.be'                  => array('Skynet', 'q', 'services/recherche/google?q={k}'),
 
         // sm.cn
-        '{}.sm.cn'                        => array('sm', 'q', 's?q={k}'),
-        'm.sm.cn'                        => array('sm', 'q', 's?q={k}'),
-        '{}.m.sm.cn'                     => array('sm', 'q', 's?q={k}'),
-        'so.m.sm.cn'                     => array('sm', 'q', 's?q={k}'),
-        'm.yz.sm.cn'                     => array('sm', 'q', 's?q={k}'),
-        'ts1.m.sm.cn'                     => array('sm', 'q', 's?q={k}'),
-        'ts2.m.sm.cn'                     => array('sm', 'q', 's?q={k}'),
-        'ts3.m.sm.cn'                     => array('sm', 'q', 's?q={k}'),
-        'm.yz.sm.cn'                     => array('sm', 'q', 's?q={k}'),
-        'm.yz2.sm.cn'                    => array('sm', 'q', 's?q={k}'),
-        'yz.m.sm.cn'                     => array('sm', 'q', 's?q={k}'),
-        'm.sp.sm.cn'                     => array('sm'),
+        'm.sm.cn'                        => array('sm.cn', 'q', 's?q={k}'),
+        'm.sp.sm.cn'                     => array('sm.cn'),
 
         // sm.de
         'www.sm.de'                      => array('sm.de', 'q', '?q={k}'),
@@ -886,15 +873,12 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
         // Sogou
         'www.sogou.com'                  => array('Sogou', 'query', 'web?query={k}', 'gb2312'),
         'm.sogou.com'                    => array('Sogou', 'keyword'),
-        'a.mobi.sogou.com'               => array('Sogou', 'keyword'),
-        'wap.sogou.com'                  => array('Sogou', 'keyword'),
 
         // Softonic
         'search.softonic.com'            => array('Softonic', 'q', 'default/default?q={k}'),
 
         // soso.com
         'www.soso.com'                   => array('Soso', 'w', 'q?w={k}', 'gb2312'),
-        '{}.soso.com'                    => array('Soso', 'w', 'q?w={k}', 'gb2312'),
 
         // sputnik.ru
         'www.sputnik.ru'                 => array('Sputnik', 'q', 'search?q={k}'),
@@ -1082,7 +1066,7 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
 
         // Yandex
         'yandex.ru'                      => array('Yandex', 'text', 'yandsearch?text={k}'),
-        'yandex.com'                     => array('Yandex', 'text', 'yandsearch?text={k}'),
+        'yandex.com'                     => array('Yandex'),
         'yandex.{}'                      => array('Yandex'),
 
         // Yandex Images
@@ -1140,7 +1124,3 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
         'www.zxuso.com'                  => array('Zxuso', 'wd', 'ri/?wd={k}'),
     );
 }
-
-
-
-

@@ -1,6 +1,7 @@
 """Update the search_engines.pickle list contained within the package.
 Use this before deploying an update"""
 from __future__ import absolute_import, division, print_function
+
 import argparse
 import os
 import sys
@@ -20,6 +21,7 @@ from six.moves.urllib.request import urlopen
 
 _here = lambda *paths: os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                     *paths)
+
 def array(*args, **kwargs):
     if args:
         return list(args)
@@ -28,6 +30,7 @@ def array(*args, **kwargs):
 
 piwik_search_engines = []
 null = None
+
 
 def parse_php(php_script):
     if_index = php_script.find('if ')
@@ -56,34 +59,41 @@ def parse_php(php_script):
 
     return OrderedDict(piwik_search_engines)
 
+
 def main():
-    parser = argparse.ArgumentParser(description="SearchEngines.php file path")
-    parser.add_argument("--file",
-                        dest="file",
-                        type=str,
-                        default="https://raw.githubusercontent.com/piwik/piwik/2.14.3/core/DataFiles/SearchEngines.php",
-                        help="SearchEngines.php")
+    parser = argparse.ArgumentParser(description='Update SearchEngines.php or search_engines.*.pickle')
+    parser.add_argument('target',
+                        choices=['php', 'pickle'],
+                        help='php: SearchEngines.php, pickle: search_engines.*.pickle')
     args = parser.parse_args()
 
-    py_version = sys.version_info[0]
-    filename = _here('serpextract', 'search_engines.py{}.pickle'.format(py_version))
-    print('Updating search engine parser definitions (requires PHP).')
+    local_filename = _here('SearchEngines.php')
 
-    # from piwik
-    if args.file.startswith('http'):
-        url = urlopen(args.file)
-        php_script = url.read()
-    # from local
-    else:
-        with open(args.file) as f:
-            php_script = f.read()
+    if args.target == 'php':
+        print('Updating search engine parser definitions from piwik (requires PHP).')
 
-    piwik_engines = parse_php(php_script)
-    with open(filename, 'wb') as pickle_file:
-        pickle.dump(piwik_engines, pickle_file)
+        # load from piwik
+        piwik_url = 'https://raw.githubusercontent.com/piwik/piwik/2.14.3/core/DataFiles/SearchEngines.php'
+        piwik_f = urlopen(piwik_url)
+        php_script = piwik_f.read()
 
-    print('Saved {} search engine parser definitions to {}.'
-          .format(len(piwik_engines), filename))
+        # save into local SearchEngines.php
+        with open(local_filename, 'w') as local_f:
+            local_f.write(php_script)
+
+        print('Saved piwik search engine parser definitions into %s' % local_filename)
+    elif args.target == 'pickle':
+        with open(local_filename) as local_f:
+            php_script = local_f.read()
+
+        piwik_engines = parse_php(php_script)
+        py_version = sys.version_info[0]
+        filename = _here('serpextract', 'search_engines.py{}.pickle'.format(py_version))
+        with open(filename, 'wb') as pickle_file:
+            pickle.dump(piwik_engines, pickle_file)
+
+        print('Saved {} search engine parser definitions into {}.'
+              .format(len(piwik_engines), filename))
 
 
 if __name__ == '__main__':
