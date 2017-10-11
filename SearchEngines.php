@@ -66,6 +66,7 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
         // 360search
         'so.360.cn'                      => array('360search', 'q', 's?q={k}', array('UTF-8', 'gb2312')),
         'www.so.com'                     => array('360search', 'q', 's?q={k}', array('UTF-8', 'gb2312')),
+        'm.so.com'                       => array('360search', 'q', 's?q={k}', array('UTF-8', 'gb2312')),
 
         // Abacho
         'www.abacho.de'                  => array('Abacho', 'q', 'suche?q={k}'),
