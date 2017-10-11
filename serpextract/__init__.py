@@ -2,4 +2,4 @@ from __future__ import absolute_import
 
 from .serpextract import *
 
-__version__ = '2016.8.16.2'
+__version__ = '2017.10.11.0'
