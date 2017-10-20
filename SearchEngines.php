@@ -853,6 +853,7 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
 
         // sm.cn
         'm.sm.cn'                        => array('sm.cn', 'q', 's?q={k}'),
+        'so.m.sm.cn'                     => array('sm.cn', 'q', 's?q={k}'),
         'm.sp.sm.cn'                     => array('sm.cn'),
 
         // sm.de
