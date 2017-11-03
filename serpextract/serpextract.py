@@ -3,9 +3,11 @@
 referrers."""
 from __future__ import absolute_import, division, print_function
 
+import json
 import logging
 import re
 import sys
+from collections import OrderedDict
 from itertools import groupby
 
 import pylru
@@ -209,7 +211,25 @@ def _get_search_engines():
     return _engines
 
 
+def get_piwik_engines_from_config():
+    stream = pkg_resources.resource_stream
+    if int(sys.version_info[0]) == 2:
+        # python2.x 使用json文件
+        json_path = 'search_engines.py{}.json'.format(2)
+        with stream(__name__, json_path) as jsonstream:
+            piwik_engines_dict = json.load(jsonstream)
+            piwik_engines = OrderedDict(piwik_engines_dict.iteritems())
+    else:
+
+        pickle_path = 'search_engines.py{}.pickle'.format(sys.version_info[0])
+        with stream(__name__, pickle_path) as picklestream:
+            piwik_engines = pickle.load(picklestream)
+    return piwik_engines
+
+
 _piwik_engines = None
+
+
 def _get_piwik_engines():
     """
     Return the search engine parser definitions stored in this module. We don't
@@ -219,10 +239,7 @@ def _get_piwik_engines():
     if _piwik_engines:
         return _piwik_engines
 
-    stream = pkg_resources.resource_stream
-    pickle_path = 'search_engines.py{}.pickle'.format(sys.version_info[0])
-    with stream(__name__, pickle_path) as picklestream:
-        _piwik_engines = pickle.load(picklestream)
+    _piwik_engines = get_piwik_engines_from_config()
 
     return _piwik_engines
 
