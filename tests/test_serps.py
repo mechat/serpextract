@@ -109,6 +109,7 @@ class TestSERPs(unittest.TestCase):
         serps = (
             ('http://m.sm.cn/s?q=meiqia+tech', 'sm.cn', u'meiqia tech'),
             ('http://so.m.sm.cn/s?q=meiqia+tech', 'sm.cn', u'meiqia tech'),
+            ('http://yz.sm.cn/s?q=meiqia+tech', 'sm.cn', u'meiqia tech'),
             ('http://m.yz.sm.cn/s?q=meiqia+tech', 'sm.cn', u'meiqia tech'),
         )
         self.assertValidSERPs(serps)

@@ -59,6 +59,11 @@ class TestSERPExtractUtilityFunctions(unittest.TestCase):
         url = 'ca.a.com'
         self.assertEqual(get_lossy_domain(url), '{}.a.com')
 
+        # Cleanup side effects on global variables
+        serpextract._get_lossy_domain_regex = None
+        serpextract.wildcard_engines = None
+        serpextract.base_domain_engines = None
+
 
 if __name__ == '__main__':
     unittest.main()
