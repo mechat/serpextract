@@ -876,6 +876,7 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
         // Sogou
         'www.sogou.com'                  => array('Sogou', 'query', 'web?query={k}', 'gb2312'),
         'm.sogou.com'                    => array('Sogou', 'keyword'),
+        '{}.sogou.com'                   => array('Sogou', 'keyword'),
 
         // Softonic
         'search.softonic.com'            => array('Softonic', 'q', 'default/default?q={k}'),
