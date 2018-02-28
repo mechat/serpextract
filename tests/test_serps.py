@@ -36,7 +36,6 @@ class TestSERPs(unittest.TestCase):
             self.assertIsNone(result)
             self.assertFalse(is_serp(url, **kwargs))
 
-
     def assertValidSERP(self, url, expected_engine_name, expected_keyword, **kwargs):
         # Test both the URL and a parsed URL version
         for url in (url, urlparse(url)):
@@ -103,6 +102,15 @@ class TestSERPs(unittest.TestCase):
     def test_bing(self):
         serps = (
             ('http://www.bing.com/search?q=united+states&go=&qs=n&form=QBLH&filt=all&pq=united+states&sc=8-13&sp=-1&sk=', 'Bing', u'united states'),
+        )
+        self.assertValidSERPs(serps)
+
+    def test_shenma(self):
+        serps = (
+            ('http://m.sm.cn/s?q=meiqia+tech', 'sm.cn', u'meiqia tech'),
+            ('http://so.m.sm.cn/s?q=meiqia+tech', 'sm.cn', u'meiqia tech'),
+            ('http://yz.sm.cn/s?q=meiqia+tech', 'sm.cn', u'meiqia tech'),
+            ('http://m.yz.sm.cn/s?q=meiqia+tech', 'sm.cn', u'meiqia tech'),
         )
         self.assertValidSERPs(serps)
 
