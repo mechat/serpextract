@@ -874,9 +874,9 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
         'video.so-net.ne.jp'             => array('So-net Videos', 'kw', 'search/?kw={k}'),
 
         // Sogou
-        'www.sogou.com'                  => array('Sogou', 'query', 'web?query={k}', 'gb2312'),
-        'm.sogou.com'                    => array('Sogou', 'keyword'),
-        '{}.sogou.com'                   => array('Sogou', 'keyword'),
+        'www.sogou.com'                  => array('Sogou', array('query', 'keyword'), 'web?query={k}', 'gb2312'),
+        'm.sogou.com'                    => array('Sogou', array('query', 'keyword')),
+        '{}.sogou.com'                   => array('Sogou', array('query', 'keyword')),
 
         // Softonic
         'search.softonic.com'            => array('Softonic', 'q', 'default/default?q={k}'),
