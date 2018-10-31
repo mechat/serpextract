@@ -79,7 +79,10 @@ class TestSERPs(unittest.TestCase):
     def test_sogou(self):
         serps = (
             ('http://www.sogou.com/135b734948f39ef3f625a90e58c89f03.1466504490.html?http://www.sogou.com/web?query=3级营养师&_asf=www.sogou.com&_ast=1466504490&w=01019900&p=40040100&ie=utf8&sut=3293&sst0=1410248725467&lkt=7,1410248722174,1410248723534', 'Sogou', u'3级营养师'),
+            ('http://www.sogou.com/web?keyword=meiqia+tech', 'Sogou', u'meiqia tech'),
+            ('http://m.sogou.com/web?query=meiqia+tech', 'Sogou', u'meiqia tech'),
             ('http://m.sogou.com/web?keyword=meiqia+tech', 'Sogou', u'meiqia tech'),
+            ('http://wap.sogou.com/web/sl?query=meiqia+tech', 'Sogou', u'meiqia tech'),
             ('http://wap.sogou.com/web/sl?keyword=meiqia+tech', 'Sogou', u'meiqia tech'),
         )
         self.assertValidSERPs(serps)
