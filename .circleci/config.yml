@@ -4,8 +4,8 @@
 # https://circleci.com/docs/2.0/tutorials/#sample-apps-with-companion-guides
 version: 2
 jobs:
-  Build-Task:
-    docker:  # https://circleci.com/docs/2.0/docker-image-tags.json
+  test-job:
+    docker:
       - image: circleci/python:2.7.16-jessie-browsers
     steps:
       - checkout
@@ -15,20 +15,32 @@ jobs:
             pip install -U setuptools
             pip install --user -r requirements.txt -r test-requirements.txt
       - run: ~/.local/bin/nosetests
-      # - run:
-      #     name: DEPLOY
-      #     command: |
-      #       pip install --user twine s3pypi
-      #       python setup.py sdist bdist_wheel
-      #       ~/.local/bin/twine upload --skip-existing -u meiqia -p "${PYPI_PASSWORD}" dist/*
-      #       ~/.local/bin/s3pypi --region "${AWS_REGION}" --bucket "${AWS_S3_BUCKET}"
+  deploy-job:
+    docker:
+      - image: circleci/python:2.7.16-jessie-browsers
+    steps:
+      - checkout
+      - run:
+          name: DEPLOY
+          command: |
+            pip install -U setuptools
+            pip install --user -r requirements.txt
+            pip install --user twine s3pypi
+            python setup.py sdist bdist_wheel
+            ~/.local/bin/twine upload --skip-existing -u meiqia -p "${PYPI_PASSWORD}" dist/*
+            ~/.local/bin/s3pypi --region "${AWS_REGION}" --bucket "${AWS_S3_BUCKET}"
 
 workflows:
   version: 2
-  My-Workflow:
+  build-and-test:
     jobs:
-      - Build-Task:
+      - test-job
+  build-and-deploy:
+    jobs:
+      - deploy-job:
           filters:
+            # only tags, no branches
             tags:
               only: /^([0-9]+)(\.[0-9]+)*$/
-
+            branches:
+              ignore: /.*/
