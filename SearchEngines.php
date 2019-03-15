@@ -218,6 +218,7 @@ if (!isset($GLOBALS['Piwik_SearchEngines'])) {
         'tieba.baidu.com'                => array('Baidu'),
         'news.baidu.com'                 => array('Baidu'),
         'web.gougou.com'                 => array('Baidu', 'search', 'search?search={k}'), // uses baidu search
+        'sp0.baidu.com'                  => array('Baidu', 'wd', 'adrc.php?wd={k}', array('UTF-8', 'gb2312')),
 
         // Biglobe
         'cgi.search.biglobe.ne.jp'       => array('Biglobe', 'q', 'cgi-bin/search-st?q={k}'),
